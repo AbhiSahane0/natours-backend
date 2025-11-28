@@ -5,10 +5,11 @@
     "type": "module",
     "main": "dist/server.js",
     "scripts": {
-        "start": "cross-env NODE_ENV=development tsx watch src/server.ts",
+        "start": "cross-env NODE_ENV=production node dist/server.js",
         "build": "tsc",
         "start:prod": "cross-env NODE_ENV=production tsx watch src/server.ts",
-        "debug": "tsx --inspect-brk src/server.ts"
+        "debug": "tsx --inspect-brk src/server.ts",
+        "dev": "tsx watch src/server.ts"
     },
     "author": "Abhijit Sahane",
     "license": "ISC",
@@ -23,7 +24,8 @@
         "hpp": "^0.2.3",
         "jsonwebtoken": "^9.0.2",
         "mailtrap": "^4.3.0",
-        "mongoose": "^8.18.2",
+        "mongodb": "^6.21.0",
+        "mongoose": "^8.20.1",
         "morgan": "^1.10.1",
         "nodemailer": "^6.10.1",
         "qs": "^6.14.0",
