@@ -17,7 +17,7 @@ export const tourAlias = (req: Request, _res: Response, next: NextFunction) => {
 }
 
 export const getTours = catchAsync(async (req: Request, res: Response) => {
-    let query = Tour.find()
+    let query: any = Tour.find()
 
     query = applyFilter(query, req.query as Record<string, any>)
     query = applySort(query, req.query.sort as string)

@@ -20,36 +20,7 @@ const signTocken = (id: mongoose.Types.ObjectId) =>
         } as SignOptions
     )
 
-const createSendToken = (
-    res: Response,
-    newUser: mongoose.Document<
-        unknown,
-        {},
-        {
-            name: string
-            email: string
-            role: 'user' | 'admin' | 'guide' | 'senior-guide'
-            passwordResetToken: string
-            passwordResetExpires: NativeDate
-            isActive: boolean
-            photo?: string | null
-            password?: string | null
-            passwordConfirm?: string | null
-        },
-        {},
-        mongoose.DefaultSchemaOptions
-    > & {
-        name: string
-        email: string
-        role: 'user' | 'admin' | 'guide' | 'senior-guide'
-        passwordResetToken: string
-        passwordResetExpires: NativeDate
-        isActive: boolean
-        photo?: string | null
-        password?: string | null
-        passwordConfirm?: string | null
-    } & { _id: mongoose.Types.ObjectId } & { __v: number }
-) => {
+const createSendToken = (res: Response, newUser: any) => {
     const token = signTocken(newUser._id)
 
     const cookieOptions = {

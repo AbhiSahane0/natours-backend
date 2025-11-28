@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import validator from 'validator';
-import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 const userSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -41,16 +41,53 @@ const userSchema = new mongoose.Schema({
             message: 'Password is not matching',
         },
     },
+    role: {
+        type: String,
+        enum: ['user', 'admin', 'guide', 'senior-guide'],
+        default: 'user',
+    },
+    passwordResetToken: {
+        type: String,
+        default: null,
+        select: false,
+    },
+    passwordResetExpires: {
+        type: Date,
+        default: null,
+        select: false,
+    },
+    isActive: {
+        type: Boolean,
+        select: false,
+        default: true,
+    },
 });
-userSchema.pre('save', async function (next) {
-    if (!this.isModified('password'))
-        return next();
-    this.password = await bcrypt.hash(this.password, 12);
-    this.passwordConfirm = undefined;
+// userSchema.pre('save', async function (this: any, next) {
+//     if (!this.isModified('password')) return next()
+//     console.log(this.password, this.passwordConfirm)
+//     if (this.password !== this.passwordConfirm) {
+//         return next(
+//             new Error(
+//                 'Passwords do not match! please check password and passwordConfirm '
+//             )
+//         )
+//     }
+//     this.password = await bcrypt.hash(this.password, 12)
+//     this.passwordConfirm = undefined
+//     next()
+// })
+userSchema.pre(/^find/, function (next) {
+    this.find({ isActive: true });
     next();
 });
-userSchema.methods.checkPassword = async function (userPassword, DBPassword) {
-    return await bcrypt.compare(userPassword, DBPassword);
+userSchema.methods.createPasswordResetToken = function () {
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    this.passwordResetToken = crypto
+        .createHash('sha256')
+        .update(resetToken)
+        .digest('hex');
+    this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
+    return resetToken;
 };
 const User = mongoose.model('User', userSchema);
 export default User;

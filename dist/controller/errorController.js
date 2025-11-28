@@ -37,7 +37,7 @@ export const globalErrorHandler = (err, req, res, next) => {
         if (error.name === 'ValidationError') {
             error = handleValidationErrDB(error);
         }
-        if (error.name === 'invalid token') {
+        if (error.message === 'invalid token') {
             error = handleInvalidTockenErr();
         }
         if (error.isOperational) {

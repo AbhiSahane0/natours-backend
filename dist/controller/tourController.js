@@ -2,6 +2,7 @@ import Tour from '../modules/TourModule.js';
 import { applyFilter, applySort, applyFields, applyPagination, } from '../utils/apiFeatures.js';
 import { AppError } from '../utils/AppError.js';
 import { catchAsync } from '../utils/catchAsync.js';
+import { deleteOne } from './handlerFactory.js';
 export const tourAlias = (req, _res, next) => {
     req.url =
         '/?sort=-ratingsAverage,price&fields=ratingsAverage,price,name,difficulty,summary&limit=5';
@@ -29,7 +30,7 @@ export const AddNewTour = catchAsync(async (req, res) => {
     });
 });
 export const getTourById = catchAsync(async (req, res, next) => {
-    const data = await Tour.findById(req.params.id);
+    const data = await Tour.findById(req.params.id).populate('reviews');
     if (!data) {
         return next(new AppError('Tour not found', 404));
     }
@@ -49,10 +50,11 @@ export const updateTour = catchAsync(async (req, res) => {
         data: data,
     });
 });
-export const deleteTour = catchAsync(async (req, res) => {
-    const data = await Tour.deleteOne({ _id: req.params.id });
-    res.status(204).send({ data: data });
-});
+// export const deleteTour = catchAsync(async (req: Request, res: Response) => {
+//     const data = await Tour.deleteOne({ _id: req.params.id })
+//     res.status(204).send({ data: data })
+// })
+export const deleteTour = deleteOne(Tour);
 export const getStats = catchAsync(async (req, res) => {
     const stats = await Tour.aggregate([
         {

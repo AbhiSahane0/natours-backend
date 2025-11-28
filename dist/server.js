@@ -15,8 +15,8 @@ process.on('uncaughtException', (err) => {
 mongoose.connect(DB).then(() => {
     console.log('Connected to MongoDB');
 });
-const server = app.listen(process.env.PORT, () => {
-    console.log(`Listning on port : ${process.env.PORT}`);
+const server = app.listen(process.env.PORT || 5000, () => {
+    console.log(`Listning on port : ${process.env.PORT || 5000}`);
 });
 process.on('unhandledRejection', (err) => {
     console.log(err.message, err.name);
