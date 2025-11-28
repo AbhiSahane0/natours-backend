@@ -5,7 +5,7 @@
     "type": "module",
     "main": "dist/server.js",
     "scripts": {
-        "start:dev": "cross-env NODE_ENV=development tsx watch src/server.ts",
+        "start": "cross-env NODE_ENV=development tsx watch src/server.ts",
         "build": "tsc",
         "start:prod": "cross-env NODE_ENV=production tsx watch src/server.ts",
         "debug": "tsx --inspect-brk src/server.ts"
@@ -18,9 +18,14 @@
         "bcrypt": "^6.0.0",
         "dotenv": "^17.2.2",
         "express": "^5.1.0",
+        "express-rate-limit": "^8.1.0",
+        "helmet": "^8.1.0",
+        "hpp": "^0.2.3",
         "jsonwebtoken": "^9.0.2",
+        "mailtrap": "^4.3.0",
         "mongoose": "^8.18.2",
         "morgan": "^1.10.1",
+        "nodemailer": "^7.0.9",
         "qs": "^6.14.0",
         "validator": "^13.15.15"
     },
@@ -28,6 +33,7 @@
         "@types/express": "^5.0.3",
         "@types/morgan": "^1.9.10",
         "@types/node": "^20.14.9",
+        "@types/nodemailer": "^7.0.2",
         "@types/validator": "^13.15.3",
         "cross-env": "^10.1.0",
         "ts-node": "^10.9.2",

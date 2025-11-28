@@ -10,8 +10,12 @@ import {
     getMonthlyPlan,
 } from '../controller/tourController.js'
 import { protectRoute, restrictPath } from '../controller/userAuthContoller.js'
+import reviewRouter from './reviewRouter.js'
 
 const tourRouter = express.Router()
+
+// tourRouter.route('/:tourId/review').post(protectRoute, addNewReview)
+tourRouter.use('/:tourId/review', reviewRouter)
 
 // special route
 tourRouter.route('/top-5-cheap').get(tourAlias, getTours)

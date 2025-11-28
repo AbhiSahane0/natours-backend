@@ -71,6 +71,40 @@ const tourSchema = new mongoose.Schema(
             select: false,
         },
         startDates: [Date],
+        startLocation: {
+            type: {
+                type: String,
+                default: 'Point',
+                enum: ['Point'],
+            },
+            cordinates: [Number],
+            address: String,
+            Description: String,
+        },
+        locations: [
+            {
+                type: {
+                    type: String,
+                    default: 'Point',
+                    enum: ['Point'],
+                },
+                cordinates: [Number],
+                address: String,
+                Description: String,
+                day: Number,
+            },
+        ],
+
+        // This is used for document embbeding
+        // guides:[],
+
+        // This is child referencing
+        guides: [
+            {
+                type: mongoose.Schema.ObjectId,
+                ref: 'User',
+            },
+        ],
     },
     {
         toJSON: {
@@ -96,11 +130,40 @@ tourSchema.virtual('durationWeeks').get(function () {
     if (this.duration) return this.duration / 7
 })
 
+// Virtual populate
+tourSchema.virtual('reviews', {
+    ref: 'Review',
+    foreignField: 'tour',
+    localField: '_id',
+})
+
+tourSchema.index({ price: 1 })
+
 //  Document middleware --> we can use it for validation
 tourSchema.pre('save', function (next) {
     console.log('Document saved')
     next()
 })
+
+tourSchema.pre(/^find/, function (this: any, next) {
+    // Only populate guides if explicitly requested
+    if (this.options.populateGuides !== false) {
+        this.populate({
+            path: 'guides',
+            select: '-__v -role',
+        })
+    }
+    next()
+})
+// Embedding the documents
+
+// tourSchema.pre('save', async function (this: any, next) {
+//     const guidePromises = this.guides.map(
+//         async (id: String) => await User.findById(id)
+//     )
+//     this.guides = await Promise.all(guidePromises)
+//     next()
+// })
 
 // Query middleware
 // tourSchema.pre('find', function (next) {

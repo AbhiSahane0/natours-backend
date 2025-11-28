@@ -8,6 +8,7 @@ import {
 } from '../utils/apiFeatures.js'
 import { AppError } from '../utils/AppError.js'
 import { catchAsync } from '../utils/catchAsync.js'
+import { deleteOne } from './handlerFactory.js'
 
 export const tourAlias = (req: Request, _res: Response, next: NextFunction) => {
     req.url =
@@ -46,7 +47,7 @@ export const AddNewTour = catchAsync(async (req: Request, res: Response) => {
 
 export const getTourById = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
-        const data = await Tour.findById(req.params.id)
+        const data = await Tour.findById(req.params.id).populate('reviews')
 
         if (!data) {
             return next(new AppError('Tour not found', 404))
@@ -76,11 +77,13 @@ export const updateTour = catchAsync(async (req: Request, res: Response) => {
     })
 })
 
-export const deleteTour = catchAsync(async (req: Request, res: Response) => {
-    const data = await Tour.deleteOne({ _id: req.params.id })
+// export const deleteTour = catchAsync(async (req: Request, res: Response) => {
+//     const data = await Tour.deleteOne({ _id: req.params.id })
 
-    res.status(204).send({ data: data })
-})
+//     res.status(204).send({ data: data })
+// })
+
+export const deleteTour = deleteOne(Tour)
 
 export const getStats = catchAsync(async (req: Request, res: Response) => {
     const stats = await Tour.aggregate([

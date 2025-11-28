@@ -1,11 +1,12 @@
 import { NextFunction, Request, Response } from 'express'
+import crypto from 'crypto'
 import User from '../modules/UsersModule.js'
 import { catchAsync } from '../utils/catchAsync.js'
 import jwt, { JwtPayload, SignOptions } from 'jsonwebtoken'
 import { AppError } from '../utils/AppError.js'
 import bcrypt from 'bcrypt'
 import mongoose from 'mongoose'
-
+import sendEmail from '../utils/email.js'
 interface MyJwtPayload extends JwtPayload {
     id: string
 }
@@ -15,9 +16,60 @@ const signTocken = (id: mongoose.Types.ObjectId) =>
         { id: id.toString() },
         process.env.JWT_SECRET as string,
         {
-            expiresIn: process.env.JWT_EXPIRES_IN, // "10d"
+            expiresIn: process.env.JWT_EXPIRES_IN,
         } as SignOptions
     )
+
+const createSendToken = (
+    res: Response,
+    newUser: mongoose.Document<
+        unknown,
+        {},
+        {
+            name: string
+            email: string
+            role: 'user' | 'admin' | 'guide' | 'senior-guide'
+            passwordResetToken: string
+            passwordResetExpires: NativeDate
+            isActive: boolean
+            photo?: string | null
+            password?: string | null
+            passwordConfirm?: string | null
+        },
+        {},
+        mongoose.DefaultSchemaOptions
+    > & {
+        name: string
+        email: string
+        role: 'user' | 'admin' | 'guide' | 'senior-guide'
+        passwordResetToken: string
+        passwordResetExpires: NativeDate
+        isActive: boolean
+        photo?: string | null
+        password?: string | null
+        passwordConfirm?: string | null
+    } & { _id: mongoose.Types.ObjectId } & { __v: number }
+) => {
+    const token = signTocken(newUser._id)
+
+    const cookieOptions = {
+        expires: new Date(
+            Date.now() +
+                Number(process.env.JWT_COOKIE_EXPIRES_IN!) * 24 * 60 * 60 * 1000
+        ),
+        secure: false,
+        httpOnly: true,
+    }
+
+    if (process.env.NODE_ENV === 'production') cookieOptions.secure = true
+
+    res.cookie('jwt', token, cookieOptions)
+
+    res.status(201).send({
+        status: 'success',
+        token: token,
+    })
+}
 
 export const signUp = catchAsync(
     async (req: Request, res: Response, next: NextFunction) => {
@@ -30,13 +82,8 @@ export const signUp = catchAsync(
             passwordConfirm: req.body.passwordConfirm,
             role: req.body.role,
         })
-        const token = signTocken(newUser._id)
 
-        res.status(201).send({
-            status: 'success',
-            token: token,
-            data: newUser,
-        })
+        createSendToken(res, newUser)
     }
 )
 
@@ -62,12 +109,7 @@ export const login = catchAsync(
         }
         // 3 - send token
 
-        const token = signTocken(user._id)
-
-        res.status(200).send({
-            status: 'success',
-            token,
-        })
+        createSendToken(res, user)
     }
 )
 
@@ -118,5 +160,100 @@ export const restrictPath = catchAsync(
             )
         }
         next()
+    }
+)
+
+export const forgotPassword = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+        const { email }: { email: string } = req.body
+
+        if (!email) return next(new AppError('Please enter your email', 404))
+
+        const user: any = await User.findOne({ email })
+
+        if (!user)
+            return next(new AppError('No user registerd with this email', 404))
+
+        const resetToken = user.createPasswordResetToken()
+
+        await user.save({ validateBeforeSave: false })
+
+        const resetURL = `${req.protocol}://${req.get(
+            'host'
+        )}/api/v1/resetPassword/${resetToken}`
+
+        const message = `Forgot your password, send an patch request to ${resetURL} ,If you didnt forgot your password then ignore this message`
+
+        try {
+            await sendEmail({ email, message })
+
+            res.status(200).send({
+                status: 'success',
+                message: 'Email send ',
+            })
+        } catch (err) {
+            user.passwordResetToken = null
+            user.passwordResetExpires = null
+            await user.save({ validateBeforeSave: false })
+
+            return next(new AppError('Something went wrong', 500))
+        }
+    }
+)
+
+export const resetPassword = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+        const hashedToken = crypto
+            .createHash('sha256')
+            .update(req.params.token!)
+            .digest('hex')
+
+        console.log(hashedToken)
+
+        const user: any = await User.findOne({
+            passwordResetToken: hashedToken,
+            passwordResetExpires: { $gt: Date.now() },
+        })
+
+        if (!user)
+            return next(new AppError('Invalid token or token is expired', 400))
+
+        user.password = req.body.password
+        user.passwordConfirm = req.body.passwordConfirm
+        user.passwordResetToken = null
+        user.passwordResetExpires = null
+
+        await user.save({ validateBeforeSave: true })
+
+        const token = signTocken(user._id)
+
+        res.status(200).send({
+            status: 'success',
+            token,
+        })
+    }
+)
+
+export const updateUserPassword = catchAsync(
+    async (req: Request, res: Response, next: NextFunction) => {
+        const user: any = await User.findById((req as any).user._id).select(
+            '+password'
+        )
+        const { currentPassword, password, passwordConfirm } = req.body
+
+        console.log(currentPassword, user.password)
+
+        if (!(await bcrypt.compare(currentPassword, user.password)))
+            return next(new AppError('Wrong password entered', 401))
+
+        user.password = password
+        user.passwordConfirm = passwordConfirm
+
+        await user.save({ validateBeforeSave: true })
+
+        res.status(200).send({
+            status: 'success',
+            message: 'Password updated !',
+        })
     }
 )
